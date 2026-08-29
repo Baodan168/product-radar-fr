@@ -1,0 +1,1 @@
+window.RADAR_ALL = {"2026-08-29": {"products": [], "stats": {"total": 0, "categories": 10}, "scan_time": "2026-08-29 12:08:21", "has_scan": true}};
