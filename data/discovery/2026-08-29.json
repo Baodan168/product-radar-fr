@@ -1,0 +1,114 @@
+{
+ "date": "2026-08-29",
+ "updated_at": "2026-08-29 15:26:35",
+ "scan_date": "2026-08-29",
+ "scan_time": "2026-08-29 15:26:35",
+ "summary": "2026-08-29 法国站选品发现：4 个主题 — 桌面收纳整理、办公桌配件、收纳整理、厨房小工具。数据事实来自 Amazon FR 榜单实扫（curl_cffi）与 fr_season_engine 法国日历；最近的备货节点：Halloween。",
+ "trend_forecast": "未来4-6周法国窗口：Halloween（63天后，空运截止 2026-10-01）；Toussaint（诸圣节）（64天后，空运截止 2026-10-02）；Beaujolais Nouveau（博若莱新酒节）（82天后，空运截止 2026-10-20）。_soldes_ 冬季大减价按法定日历1月第二个周三启动，圣诞类10月中旬前完成海运下单。",
+ "insights": [
+  {
+   "keyword": "organiseur bureau",
+   "keyword_cn": "桌面收纳整理",
+   "amazon_keyword": "organiseur bureau, organiseur bureau france, organiseur bureau cuisine maison",
+   "search_1688": "桌面收纳 文具整理 跨境 法国",
+   "demand_signals": [
+    "Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 7，价格带 €2.91-14.16（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）",
+    "法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）",
+    "利润模型验证 — 售价 €8.32（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 13%（来源：scanner.calc_profit × config.json）",
+    "竞争结构 — 3/3 个相关品评论 ≤50（上升期可切入），法国站长尾Listing普遍缺 A+ 与视频，优化空间大"
+   ],
+   "trend_score": 65,
+   "trend_direction": "rising",
+   "competition": "相关在售 3 个、评论中位数 7、价格带 €2.91-14.16 —— 低竞争。风险：法国站需本地法语Listing与EPR合规。",
+   "reason": "桌面收纳整理（organiseur bureau）入选依据：Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 7，价格带 €2.91-14.16（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）；法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）；利润模型验证 — 售价 €8.32（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 13%（来源：scanner.calc_profit × config.json）。差异化窗口在品质升级与组合装（参考 UK 站同品类演进路径，法国消费者对材质与环保标识敏感，Listing 需法语本地化）。",
+   "signal_scores": {
+    "trend": 65,
+    "gap": 80,
+    "profit": 23,
+    "final": 57.6,
+    "recommendation": "WATCH",
+    "gap_level": "低竞争",
+    "profit_window": "按 €8.32 中位价、1688 采购 ¥6 内可保 13% 净利率"
+   },
+   "action": "测款建议：围绕「organiseur bureau」从榜单相关品中挑 1-2 款差异化上架（参考定价 €8.32），1688 搜'桌面收纳 文具整理 跨境 法国'，首批 200-300 件。关键词布局：organiseur bureau + 长尾变体。"
+  },
+  {
+   "keyword": "accessoires bureau",
+   "keyword_cn": "办公桌配件",
+   "amazon_keyword": "accessoires bureau, accessoires bureau france, accessoires bureau cuisine maison",
+   "search_1688": "办公桌面 配件 整理 跨境 法国",
+   "demand_signals": [
+    "Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 7，价格带 €8.32-14.16（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）",
+    "法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）",
+    "利润模型验证 — 售价 €10.99（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 22%（来源：scanner.calc_profit × config.json）",
+    "竞争结构 — 3/3 个相关品评论 ≤50（上升期可切入），法国站长尾Listing普遍缺 A+ 与视频，优化空间大"
+   ],
+   "trend_score": 65,
+   "trend_direction": "rising",
+   "competition": "相关在售 3 个、评论中位数 7、价格带 €8.32-14.16 —— 低竞争。风险：法国站需本地法语Listing与EPR合规。",
+   "reason": "办公桌配件（accessoires bureau）入选依据：Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 7，价格带 €8.32-14.16（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）；法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）；利润模型验证 — 售价 €10.99（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 22%（来源：scanner.calc_profit × config.json）。差异化窗口在品质升级与组合装（参考 UK 站同品类演进路径，法国消费者对材质与环保标识敏感，Listing 需法语本地化）。",
+   "signal_scores": {
+    "trend": 65,
+    "gap": 80,
+    "profit": 32,
+    "final": 60.4,
+    "recommendation": "WATCH",
+    "gap_level": "低竞争",
+    "profit_window": "按 €10.99 中位价、1688 采购 ¥6 内可保 22% 净利率"
+   },
+   "action": "测款建议：围绕「accessoires bureau」从榜单相关品中挑 1-2 款差异化上架（参考定价 €10.99），1688 搜'办公桌面 配件 整理 跨境 法国'，首批 200-300 件。关键词布局：accessoires bureau + 长尾变体。"
+  },
+  {
+   "keyword": "organiseur rangement",
+   "keyword_cn": "收纳整理",
+   "amazon_keyword": "organiseur rangement, organiseur rangement france, organiseur rangement cuisine maison",
+   "search_1688": "收纳整理 家用 跨境 法国",
+   "demand_signals": [
+    "Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 37，价格带 €2.91-17.99（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）",
+    "法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）",
+    "利润模型验证 — 售价 €16.99（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 36%（来源：scanner.calc_profit × config.json）",
+    "竞争结构 — 2/3 个相关品评论 ≤50（上升期可切入），法国站长尾Listing普遍缺 A+ 与视频，优化空间大"
+   ],
+   "trend_score": 65,
+   "trend_direction": "rising",
+   "competition": "相关在售 3 个、评论中位数 37、价格带 €2.91-17.99 —— 中等竞争。风险：法国站需本地法语Listing与EPR合规。",
+   "reason": "收纳整理（organiseur rangement）入选依据：Amazon FR 榜单实扫 — 3 个相关在售产品，评论中位数 37，价格带 €2.91-17.99（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）；法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）；利润模型验证 — 售价 €16.99（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 36%（来源：scanner.calc_profit × config.json）。差异化窗口在品质升级与组合装（参考 UK 站同品类演进路径，法国消费者对材质与环保标识敏感，Listing 需法语本地化）。",
+   "signal_scores": {
+    "trend": 65,
+    "gap": 70,
+    "profit": 46,
+    "final": 61.0,
+    "recommendation": "WATCH",
+    "gap_level": "中等竞争",
+    "profit_window": "按 €16.99 中位价、1688 采购 ¥6 内可保 36% 净利率"
+   },
+   "action": "测款建议：围绕「organiseur rangement」从榜单相关品中挑 1-2 款差异化上架（参考定价 €16.99），1688 搜'收纳整理 家用 跨境 法国'，首批 200-300 件。关键词布局：organiseur rangement + 长尾变体。"
+  },
+  {
+   "keyword": "gadgets cuisine",
+   "keyword_cn": "厨房小工具",
+   "amazon_keyword": "gadgets cuisine, gadgets cuisine france, gadgets cuisine cuisine maison",
+   "search_1688": "厨房小工具 创意 塑料 不锈钢 跨境",
+   "demand_signals": [
+    "Amazon FR 榜单实扫 — 2 个相关在售产品，评论中位数 123，价格带 €13.32-49.49（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）",
+    "法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）",
+    "利润模型验证 — 售价 €31.41（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 45%（来源：scanner.calc_profit × config.json）",
+    "竞争结构 — 1/2 个相关品评论 ≤50（上升期可切入），法国站长尾Listing普遍缺 A+ 与视频，优化空间大"
+   ],
+   "trend_score": 65,
+   "trend_direction": "rising",
+   "competition": "相关在售 2 个、评论中位数 123、价格带 €13.32-49.49 —— 竞争激烈。风险：法国站需本地法语Listing与EPR合规。",
+   "reason": "厨房小工具（gadgets cuisine）入选依据：Amazon FR 榜单实扫 — 2 个相关在售产品，评论中位数 123，价格带 €13.32-49.49（2026-08-29 curl_cffi 扫描 new-releases/bestsellers）；法国季节节点 — 「Halloween」距今 63 天（2026-10-31），空运备货截止 2026-10-01，当前窗口状态 RAIL_OR_AIR（来源：fr_season_engine 日历）；利润模型验证 — 售价 €31.41（榜单实扫中位数），FBA €2.55（2.79 GBP×7.3/8.0 汇率）、佣金+VAT+广告后净利率 45%（来源：scanner.calc_profit × config.json）。差异化窗口在品质升级与组合装（参考 UK 站同品类演进路径，法国消费者对材质与环保标识敏感，Listing 需法语本地化）。",
+   "signal_scores": {
+    "trend": 65,
+    "gap": 50,
+    "profit": 55,
+    "final": 56.8,
+    "recommendation": "WATCH",
+    "gap_level": "竞争激烈",
+    "profit_window": "按 €31.41 中位价、1688 采购 ¥6 内可保 45% 净利率"
+   },
+   "action": "测款建议：围绕「gadgets cuisine」从榜单相关品中挑 1-2 款差异化上架（参考定价 €31.41），1688 搜'厨房小工具 创意 塑料 不锈钢 跨境'，首批 200-300 件。关键词布局：gadgets cuisine + 长尾变体。"
+  }
+ ]
+}
