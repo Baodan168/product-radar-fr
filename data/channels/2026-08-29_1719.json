@@ -1,0 +1,27 @@
+{
+  "scan_date": "2026-08-29",
+  "scan_time": "17:19",
+  "scan_ts": "2026-08-29_1719",
+  "stats": {
+    "total_scanned": 147,
+    "passed_filter": 0,
+    "rejected": 147,
+    "channels": {},
+    "detail_reject": {},
+    "theme_trimmed": [],
+    "trend_categories": {},
+    "supply_demand": {},
+    "divergences": {},
+    "gap_opportunities": 0,
+    "note": "re-filtered 2026-08-29_1636-raw.json with FR forbidden keywords"
+  },
+  "products": [],
+  "gaps": [],
+  "trend_summary": {
+    "top_categories": [],
+    "cross_validated": [],
+    "demand_keywords": [],
+    "season": "",
+    "sources_scanned": []
+  }
+}
