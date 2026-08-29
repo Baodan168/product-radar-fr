@@ -51,46 +51,48 @@ def fetch_trend_signals():
     season = _get_season(now.month)
 
     # === Query groups by source ===
+    # 2026-08-29 法国站本地化：查询词全部改为法国/法语市场（原 UK 查询保留在
+    # git 历史里）。TikTok Shop 已在法国上线；deals 站用 Dealabs（法国主流）。
     query_groups = {
         "tiktok": [
-            (f"TikTok Shop UK trending products {season} {year}", "ecommerce"),
-            (f"TikTok viral products UK under £10 useful {year}", "ecommerce"),
-            ("TikTok made me buy it UK 2026 best products", "ecommerce"),
+            (f"TikTok Shop France produits tendances {season} {year}", "ecommerce"),
+            (f"TikTok viral produits France moins de 10 euros {year}", "ecommerce"),
+            ("TikTok made me buy it France meilleurs produits", "ecommerce"),
         ],
-        "hotukdeals": [
-            ("site:hotukdeals.com Amazon UK best deals trending", "general"),
-            (f"hotukdeals popular deals {season} {year} small items", "general"),
-            ("hotukdeals most voted Amazon UK accessories gadgets", "general"),
+        "dealabs": [
+            ("site:dealabs.com Amazon France meilleures ventes", "general"),
+            (f"dealabs bons plans populaires {season} {year} petits objets", "general"),
+            ("dealabs accessoires gadgets Amazon France les plus votés", "general"),
         ],
         "temu": [
-            (f"Temu UK best sellers trending products {season}", "ecommerce"),
-            ("Temu trending products UK small items accessories gadgets", "ecommerce"),
-            ("Temu viral products UK what to sell on Amazon", "ecommerce"),
+            (f"Temu France meilleurs produits tendances {season}", "ecommerce"),
+            ("Temu produits tendance France petits articles accessoires", "ecommerce"),
+            ("Temu produits viraux France quoi vendre sur Amazon", "ecommerce"),
         ],
         "etsy": [
-            (f"Etsy UK trending products {season} {year} best sellers", "ecommerce"),
-            ("Etsy UK trending handmade accessories home decor", "ecommerce"),
-            ("Etsy trending now UK popular gift ideas", "ecommerce"),
+            (f"Etsy France tendances {season} {year} meilleures ventes", "ecommerce"),
+            ("Etsy France fait main accessoires décoration maison tendance", "ecommerce"),
+            ("Etsy trending now France idées cadeaux populaires", "ecommerce"),
         ],
         "youtube": [
-            ("site:youtube.com Amazon UK haul best finds under £10 2026", "general"),
-            ("youtube Amazon UK best sellers review small items haul", "general"),
-            (f"youtube Amazon UK {season} must haves trending products", "general"),
+            ("site:youtube.com Amazon France haul meilleurs articles 2026", "general"),
+            ("youtube Amazon France best sellers avis petits objets", "general"),
+            (f"youtube Amazon France {season} incontournables produits tendance", "general"),
         ],
         "google_trends": [
-            (f"UK trending products {season} {year} popular buying", "general"),
-            (f"Amazon UK new releases trending {month} {year}", "general"),
-            (f"{season} products UK home garden outdoor trending", "general"),
+            (f"France produits tendances {season} {year} achats populaires", "general"),
+            (f"Amazon France nouvelles sorties tendance {month} {year}", "general"),
+            (f"{season} produits France maison jardin extérieur tendance", "general"),
         ],
         "reddit": [
-            ("site:reddit.com UK Amazon best cheap finds under £10", "general"),
-            ("site:reddit.com CasualUK small purchases improved life", "general"),
-            ("site:reddit.com FrugalUK best value Amazon purchases", "general"),
+            ("site:reddit.com fr Amazon France bons plans moins de 10 euros", "general"),
+            ("site:reddit.com france petit achat amélioré la vie", "general"),
+            ("site:reddit.com AskFrance bons plans Amazon utiles", "general"),
         ],
         "market_intel": [
-            (f"Amazon UK best sellers small items {year} trending accessories", "ecommerce"),
-            (f"UK consumer trends {year} popular products home garden", "general"),
-            (f"cross border ecommerce UK trending {season} {year}", "general"),
+            (f"Amazon France meilleures ventes petits articles {year} accessoires", "ecommerce"),
+            (f"tendances consommation France {year} produits populaires maison jardin", "general"),
+            (f"e-commerce transfrontalier France tendances {season} {year}", "general"),
         ],
     }
 

@@ -11,6 +11,8 @@ from selection_feishu import get_token, create_doc, push_post, push_link
 
 CHAT_ID = "oc_906e4db2810734d00495230b55f23711"
 RADAR_DIR = Path(__file__).parent
+SITE_NAME = "Amazon-FR"
+SITE_URL = "https://Baodan168.github.io/product-radar-fr/output/index.html"
 
 def find_latest_discovery():
     discovery_dir = RADAR_DIR / "data" / "discovery"

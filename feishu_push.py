@@ -50,7 +50,7 @@ def generate_report_md(data, date_str):
         asin = p.get('asin', '')
         
         lines.append(f"### {i}. {p['name'][:80]}")
-        lines.append(f"- **价格**：£{p.get('price', '?')} | **利润率**：{margin_pct} | **评分**：{score} {stars}")
+        lines.append(f"- **价格**：€{p.get('price', '?')} | **利润率**：{margin_pct} | **评分**：{score} {stars}")
         lines.append(f"- **Review**：{p.get('review_info', '?')} | **类目**：{p.get('category', '?')} | **来源**：{p.get('channel_name', '?')}")
         if url:
             lines.append(f"- **Amazon**：[查看商品]({url})")
@@ -106,7 +106,7 @@ def generate_summary_json(data, date_str):
     # Top 5 产品
     for i, p in enumerate(products[:5], 1):
         margin = f"{p['profit_margin']*100:.0f}%" if p.get('profit_margin') else '?'
-        content_blocks.append([{"tag": "text", "text": f"① {p['name'][:40]} — £{p.get('price','?')} | 利润率{margin}".replace("①", f"{'①②③④⑤'[i-1]}") }])
+        content_blocks.append([{"tag": "text", "text": f"① {p['name'][:40]} — €{p.get('price','?')} | 利润率{margin}".replace("①", f"{'①②③④⑤'[i-1]}") }])
         if p.get('amazon_url'):
             content_blocks.append([{"tag": "a", "text": "查看商品", "href": p['amazon_url']}])
     

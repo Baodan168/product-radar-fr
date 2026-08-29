@@ -177,7 +177,7 @@ for i, p in enumerate(d.get('products',[])[:3], 1):
     sub = p.get('bsr_sub_category', '')
     daily = p.get('estimated_daily_sales', 'N/A')
     print(f'  {i}. {p[\"name\"][:50]}')
-    print(f'     £{p[\"price\"]} | 利润{p[\"profit_margin\"]*100:.0f}% | BSR#{bsr} ({sub}) | 日销≈{daily}')
+    print(f'     €{p[\"price\"]} | 利润{p[\"profit_margin\"]*100:.0f}% | BSR#{bsr} ({sub}) | 日销≈{daily}')
     print(f'     {sig} {sd}')
 "
 
@@ -201,12 +201,12 @@ else
 fi
 
 echo ""
-echo "✅ 部署完成：https://Baodan168.github.io/product-radar/platform.html"
+echo "✅ 部署完成：https://Baodan168.github.io/product-radar-fr/output/index.html"
 
 } > "$LOG" 2>&1 || {
     # On failure, output error for cron alert
     write_status false
-    echo "❌ UK选品雷达扫描失败 | $(date '+%Y-%m-%d %H:%M')"
+    echo "❌ FR选品雷达扫描失败 | $(date '+%Y-%m-%d %H:%M')"
     tail -5 "$LOG"
     exit 1
 }
@@ -243,7 +243,7 @@ except Exception:
 " 2>/dev/null)
 fi
 if [ "$REPEAT_COUNT" -gt 0 ] 2>/dev/null; then
-    echo "✅ UK选品雷达扫描完成 | $(date '+%Y-%m-%d %H:%M') | ${PRODUCTS}个通过筛选（🆕${NEW_COUNT}新品 ♻️${REPEAT_COUNT}重复）→ 已部署GitHub${DETAIL_REJ}"
+    echo "✅ FR选品雷达扫描完成 | $(date '+%Y-%m-%d %H:%M') | ${PRODUCTS}个通过筛选（🆕${NEW_COUNT}新品 ♻️${REPEAT_COUNT}重复）→ 已部署GitHub${DETAIL_REJ}"
 else
-    echo "✅ UK选品雷达扫描完成 | $(date '+%Y-%m-%d %H:%M') | ${PRODUCTS}个新品通过筛选 → 已部署GitHub${DETAIL_REJ}"
+    echo "✅ FR选品雷达扫描完成 | $(date '+%Y-%m-%d %H:%M') | ${PRODUCTS}个新品通过筛选 → 已部署GitHub${DETAIL_REJ}"
 fi

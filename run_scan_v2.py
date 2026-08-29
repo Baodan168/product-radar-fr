@@ -14,6 +14,7 @@ sys.path.insert(0, str(BASE))
 
 from scanner import is_forbidden, calc_profit
 from sources.amazon_uk import fetch as fetch_amazon
+from sources.amazon_fr import fetch as fetch_amazon_fr
 from sources.tiktok_shop import fetch as fetch_tiktok
 from sources.google_trends import fetch_demand_signals, extract_trending_keywords
 from sources.reddit_demand import fetch_demand_signals as fetch_reddit
@@ -71,7 +72,8 @@ def enrich_from_trend_data(products, trend_data):
     cat_scores = trend_data.get("category_scores", {})
     
     source_map = {
-        "hotukdeals": "HotUKDeals热帖",
+        "hotukdeals": "HotUKDeals热帖",  # 兼容旧数据
+        "dealabs": "Dealabs热帖",        # 法国站主力 deals 站（2026-08-29 本地化）
         "temu": "Temu热销",
         "etsy": "Etsy趋势",
         "youtube": "YouTube种草",
@@ -244,7 +246,7 @@ def filter_products(products, config):
         # 4. 价格区间
         price = p.get("price", 0)
         if price < config["price_range"]["min"] or price > config["price_range"]["max"]:
-            rejected.append({"name": name[:60], "reason": f"£{price} 不在区间", "asin": p.get("asin")}); continue
+            rejected.append({"name": name[:60], "reason": f"€{price} 不在区间", "asin": p.get("asin")}); continue
 
         # 5. 利润率
         profit = calc_profit(price, category)
@@ -397,6 +399,7 @@ def assign_channel_tags(p):
 
     if any("tiktok" in s for s in sources): tags.append("tiktok_verified")
     if any("hotukdeals" in s for s in sources): tags.append("hotukdeals")
+    if any("dealabs" in s for s in sources): tags.append("dealabs")
     if any("temu" in s for s in sources): tags.append("temu_trending")
     if any("etsy" in s for s in sources): tags.append("etsy_trending")
     if any("youtube" in s for s in sources): tags.append("youtube_review")
@@ -436,7 +439,16 @@ def main():
     # 1. Amazon (New/BSR/Wished/Gifts)
     print("[1/8] Amazon UK (New+BSR+Wished+Gifts)...", file=sys.stderr)
     amazon_products = fetch_amazon(max_per_channel_type=5)  # 跟新默认值保持一致
-    print(f"  Amazon: {len(amazon_products)} products", file=sys.stderr)
+    print(f"  Amazon UK: {len(amazon_products)} products", file=sys.stderr)
+
+    # 1a. Amazon FR (new releases only — 法国站爬虫独立，需代理)
+    print("\n[1a/8] Amazon FR (new releases)...", file=sys.stderr)
+    fr_products = []
+    try:
+        fr_products = fetch_amazon_fr(max_per_channel=3)
+        print(f"  Amazon FR: {len(fr_products)} products", file=sys.stderr)
+    except Exception as e:
+        print(f"  ⚠️ Amazon FR 扫描失败（非致命）: {e}", file=sys.stderr)
 
     # 1b. Keyword-driven scan (discovery + festival keywords) with dedicated Playwright
     print("\n[1b/8] Keyword-driven scan (discovery + festival)...", file=sys.stderr)
@@ -503,11 +515,16 @@ def main():
     tiktok_matched = match_keywords_to_products(tiktok_products, amazon_products, "TikTok趋势")
     print(f"  TikTok → {len(tiktok_matched)} products", file=sys.stderr)
 
+    # Merge FR products (with FR-specific platform tag)
+    for p in fr_products:
+        p.setdefault("sources", []).append("AmazonFR新品")
+    all_products = amazon_products + fr_products
+
     # ── Checkpoint save: save raw products even if later steps crash ──
     checkpoint = {
         "scan_date": scan_date, "scan_time": scan_time, "scan_ts": scan_ts,
-        "stats": {"total_scanned": len(amazon_products), "passed": len(tiktok_matched), "sources": ["amazon","keyword","tiktok"]},
-        "products": amazon_products,
+        "stats": {"total_scanned": len(all_products), "passed": len(tiktok_matched), "sources": ["amazon","amazon_fr","keyword","tiktok"]},
+        "products": all_products,
     }
     try:
         (BASE / "data" / "channels" / f"{scan_ts}-raw.json").write_text(
@@ -544,29 +561,29 @@ def main():
     else:
         gtrends_text = _gt_box.get("text", "")
     try:
-        amazon_products = enrich_google_trends(amazon_products, gtrends_text)
-        gt_count = sum(1 for p in amazon_products if p.get("google_trend") == "rising")
+        all_products = enrich_google_trends(all_products, gtrends_text)
+        gt_count = sum(1 for p in all_products if p.get("google_trend") == "rising")
         print(f"  Google Trends → {gt_count} products", file=sys.stderr)
     except Exception as e:
         print(f"  ⚠️ Google Trends enrich error (non-fatal): {e}", file=sys.stderr)
 
     # 5. Reddit
-    print("\\n[5/7] Reddit demand...", file=sys.stderr)
+    print("\n[5/7] Reddit demand...", file=sys.stderr)
     try:
         reddit_text = fetch_reddit()
-        amazon_products = enrich_reddit(amazon_products, reddit_text)
+        all_products = enrich_reddit(all_products, reddit_text)
     except Exception as e:
         print(f"  ⚠️ Reddit error (non-fatal): {e}", file=sys.stderr)
 
     # 6. Enrich with AnySearch source signals
     print("\n[6/7] Enriching with trend signals...", file=sys.stderr)
-    amazon_products = enrich_from_trend_data(amazon_products, trend_data)
-    for src_tag in ["HotUKDeals热帖", "Temu热销", "Etsy趋势", "YouTube种草"]:
-        cnt = sum(1 for p in amazon_products if src_tag in p.get("sources", []))
+    all_products = enrich_from_trend_data(all_products, trend_data)
+    for src_tag in ["HotUKDeals热帖", "Dealabs热帖", "Temu热销", "Etsy趋势", "YouTube种草", "AmazonFR新品"]:
+        cnt = sum(1 for p in all_products if src_tag in p.get("sources", []))
         if cnt: print(f"  {src_tag}: {cnt} products", file=sys.stderr)
 
     # Dedup
-    products = dedup_products(amazon_products)
+    products = dedup_products(all_products)
     print(f"  After dedup: {len(products)}", file=sys.stderr)
 
     # 7. Filter + Score
@@ -662,7 +679,7 @@ def main():
     print(f"\n  Top 10:", file=sys.stderr)
     for p in passed[:10]:
         src_tags = ", ".join(p.get("sources", [])[:3])
-        print(f"    [{p['score']:3d}] £{p['price']:.2f} {p['profit_margin']*100:.0f}% | {src_tags} | {p['name'][:45]}", file=sys.stderr)
+        print(f"    [{p['score']:3d}] €{p['price']:.2f} {p['profit_margin']*100:.0f}% | {src_tags} | {p['name'][:45]}", file=sys.stderr)
 
     # Channel counts
     channel_counts = {}

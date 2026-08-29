@@ -29,14 +29,17 @@ from .field import CardData
 #   补货每周一/四 08:00 → 最长间隔 4 天，给 120h
 SOURCES = [
     {'key': 'platform', 'label': '雷达扫描', 'kind': 'scan',
-     'dir': 'data/channels', 'pattern': '*.json', 'stale_h': 48, 'dead_h': 96},
+     'dir': 'data/channels', 'pattern': '*.json', 'stale_h': 48, 'dead_h': 96,
+     'fallback_js': 'radar-all.js'},
     {'key': 'platform', 'label': '趋势发现', 'kind': 'scan',
-     'dir': 'data/discovery', 'pattern': '*.json', 'stale_h': 48, 'dead_h': 96},
+     'dir': 'data/discovery', 'pattern': '*.json', 'stale_h': 48, 'dead_h': 96,
+     'fallback_js': 'disc-all.js'},
     {'key': 'analysis', 'label': '补货跟进', 'kind': 'restock',
      'stale_h': 120, 'dead_h': 240},
 ]
 
 DATE_IN_NAME = re.compile(r'(\d{4}-\d{2}-\d{2})')
+DATE_IN_DATA_JS = re.compile(r'"(\d{4}-\d{2}-\d{2})"')
 RESTOCK_DATE = re.compile(r'分析日期[:：]\s*(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}:\d{2}))?')
 
 
@@ -74,15 +77,41 @@ def _latest_scan_date(subdir: str, pattern: str):
     return newest
 
 
+def _latest_date_in_data_js(filename: str):
+    """从 output/data/<filename> 的内容里取最新 YYYY-MM-DD。
+
+    data/discovery、data/channels 目录可能为空（新站/本地清理），
+    但 output/data/*.js 是上次构建的产物快照，里面带着日期 key，
+    拿它兜底避免「取不到日期」把断管线索淹没。
+    """
+    path = OUTPUT_DIR / 'data' / filename
+    if not path.exists():
+        return None
+    try:
+        text = path.read_text(encoding='utf-8')
+    except OSError:
+        return None
+    newest = None
+    for m in DATE_IN_DATA_JS.finditer(text):
+        stamp = _parse(m.group(1))
+        if stamp and (newest is None or stamp > newest):
+            newest = stamp
+    return newest
+
+
 def _restock_date():
     """补货页的分析日期，从页面文案里取。"""
     path = OUTPUT_DIR / 'analysis' / 'index.html'
     if not path.exists():
         return None
     try:
-        m = RESTOCK_DATE.search(path.read_text(encoding='utf-8'))
+        raw = path.read_text(encoding='utf-8')
     except OSError:
         return None
+    # FR 站补货数据源未接入（占位页）——不是「取不到日期」，如实标注
+    if 'data-restock-status="empty"' in raw:
+        return 'NOT_CONNECTED'
+    m = RESTOCK_DATE.search(raw)
     return _parse(m.group(1), m.group(2)) if m else None
 
 
@@ -103,8 +132,16 @@ def collect_freshness(now=None) -> CardData:
     for src in SOURCES:
         if src['kind'] == 'restock':
             stamp = _restock_date()
+            if stamp == 'NOT_CONNECTED':
+                rows.append({'label': src['label'], 'module': src['key'],
+                             'health': 'unknown', 'detail': '数据源未接入'})
+                if rank['unknown'] > rank[worst]:
+                    worst = 'unknown'
+                continue
         else:
             stamp = _latest_scan_date(src['dir'], src['pattern'])
+            if stamp is None and src.get('fallback_js'):
+                stamp = _latest_date_in_data_js(src['fallback_js'])
 
         if stamp is None:
             rows.append({'label': src['label'], 'module': src['key'],

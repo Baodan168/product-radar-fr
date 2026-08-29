@@ -40,6 +40,9 @@ CONFIG = {
     ("0.44 lb", 199.584),            # 磅缩写（临界值）
     ("1.5 pounds", 680.4),           # 磅全称复数
     ("110 g", 110.0),
+    ("0,37 kilogrammes", 370.0),     # FR 逗号小数 + 法语单位
+    ("200 grammes", 200.0),          # 法语克全称
+    ("2,5 livres", 1134.0),          # 法语磅
     (None, None),                    # 空数据
     ("See size chart", None),        # 无单位不解析
 ])
@@ -61,6 +64,8 @@ def test_norm_weight(text, expected):
     ("80 x 40in", [203.2, 101.6]),          # 英寸换算
     ("10 x 8 x 2 inches", [25.4, 20.3, 5.1]),  # 英寸3D
     ("450 x 300 x 60 mm", [45.0, 30.0, 6.0]),  # mm→cm
+    ("19,5 x 12,5 x 5,5 cm", [19.5, 12.5, 5.5]),  # FR 逗号小数
+    ("450 x 300 x 60 millimètres", [45.0, 30.0, 6.0]),  # 法语毫米
     ("no dims here", None),
     (None, None),
 ])
@@ -99,13 +104,21 @@ def test_norm_dims_ignores_trailing_numbers(text, expected):
 # ---------- 3. verify_product 验证状态 ----------
 
 def _fake_fetch(html):
-    """monkeypatch _curl_fetch 返回固定 HTML。"""
+    """monkeypatch 双站抓取函数返回固定 HTML。
+
+    FR 版 detail_verifier 按 product platform 路由到 _curl_fetch_uk/_fr，
+    测试产品是 UK 平台，但两个名字都 patch，防路由改动悄悄绕过 mock。
+    """
     import detail_verifier
-    detail_verifier._curl_fetch = lambda url: html
+    detail_verifier._curl_fetch_uk = lambda url: html
+    detail_verifier._curl_fetch_fr = lambda url: html
 
 
-def _make_prod(asin="B0TEST123"):
-    return {"asin": asin, "name": "Test Product"}
+def _make_prod(asin="B0TEST123", platform=None):
+    p = {"asin": asin, "name": "Test Product"}
+    if platform:
+        p["platform"] = platform
+    return p
 
 
 def _pad(html):
@@ -129,6 +142,24 @@ def test_verify_overweight_rejects(monkeypatch):
     </table>"""
     _fake_fetch(_pad(html))
     ok, reason, data_found = verify_product(_make_prod(), CONFIG)
+    assert ok is False
+    assert "370g" in reason
+    assert data_found is True
+
+
+def test_verify_fr_labels_rejects(monkeypatch):
+    """法语规格表（Poids de l'article / 逗号小数）→ 拦截。
+
+    08-29 扫描 6/9 FR 产品 unverified 的根因就是 FR 详情页解析不到数据。
+    """
+    html = """<table id="productDetails_techSpec_section_1">
+      <th class="prodDetSectionEntry">Poids de l&#39;article</th>
+      <td class="prodDetAttrValue">0,37 kilogrammes</td>
+      <th class="prodDetSectionEntry">Dimensions du colis</th>
+      <td class="prodDetAttrValue">40 x 30 x 10 centimètres</td>
+    </table>"""
+    _fake_fetch(_pad(html))
+    ok, reason, data_found = verify_product(_make_prod(platform="Amazon-FR"), CONFIG)
     assert ok is False
     assert "370g" in reason
     assert data_found is True
@@ -166,7 +197,8 @@ def test_batch_verify_sets_status(monkeypatch):
     def fake_fetch(url):
         asin = url.rsplit("/", 1)[-1]
         return htmls.get(asin, _pad("<html></html>"))
-    detail_verifier._curl_fetch = fake_fetch
+    detail_verifier._curl_fetch_uk = fake_fetch
+    detail_verifier._curl_fetch_fr = fake_fetch
 
     prods = [_make_prod(a) for a in ("B0OK1", "B0OK2", "B0BAD")]
     passed, rejected = batch_verify(prods, CONFIG, max_workers=3)

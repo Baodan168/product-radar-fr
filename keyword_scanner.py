@@ -21,7 +21,15 @@ BASE = Path(__file__).parent
 
 # Import from existing modules
 sys.path.insert(0, str(BASE))
-from sources.amazon_uk import _curl_fetch, _parse_amazon_page, CATEGORY_VALIDATORS
+# FR 本地化：关键词扫描目标从 amazon.co.uk 换成 amazon.fr。
+# 法语关键词在 UK 站搜不出东西（08-29 扫描日志里 4 组 discovery 关键词全 0 parsed），
+# 解析器也必须用 FR 版 —— UK 解析器只认 £ 和英文评分文案。
+from sources.amazon_uk import CLOAKBROWSER_CHROME
+from sources.amazon_fr import (
+    _curl_fetch,
+    _parse_amazon_fr_page as _parse_amazon_page,
+    EUR_COOKIES, USER_AGENT as FR_USER_AGENT, _is_valid_response,
+)
 
 
 def load_discovery_keywords():
@@ -131,14 +139,14 @@ def _keyword_playwright_fetch(search_url, cloackchrome_path=None):
             browser = p.chromium.launch(executable_path=cloackchrome_path, headless=True)
             try:
                 ctx = browser.new_context(
-                    locale='en-GB',
-                    timezone_id='Europe/London',
+                    locale='fr-FR',
+                    timezone_id='Europe/Paris',
                     user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
                 )
-                # Set GBP cookies so Amazon returns UK prices instead of CNY
+                # Set EUR/fr-FR cookies so Amazon FR returns French EUR prices
                 ctx.add_cookies([
-                    {"name": "lc-main", "url": "https://www.amazon.co.uk", "value": "en_GB"},
-                    {"name": "i18n-prefs", "url": "https://www.amazon.co.uk", "value": "GBP"},
+                    {"name": "lc-main", "url": "https://www.amazon.fr", "value": "fr_FR"},
+                    {"name": "i18n-prefs", "url": "https://www.amazon.fr", "value": "EUR"},
                 ])
                 page = ctx.new_page()
                 try:
@@ -171,11 +179,11 @@ def _keyword_playwright_fetch(search_url, cloackchrome_path=None):
             "with sync_playwright() as p: "
             "  b = p.chromium.launch(executable_path=CLOAKBROWSER_CHROME, headless=True); "
             "  try: "
-            "    ctx = b.new_context(locale='en-GB', timezone_id='Europe/London', "
+            "    ctx = b.new_context(locale='fr-FR', timezone_id='Europe/Paris', "
             "      user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'); "
             "    ctx.add_cookies(["
-            "      {'name':'lc-main','url':'https://www.amazon.co.uk','value':'en_GB'},"
-            "      {'name':'i18n-prefs','url':'https://www.amazon.co.uk','value':'GBP'},"
+            "      {'name':'lc-main','url':'https://www.amazon.fr','value':'fr_FR'},"
+            "      {'name':'i18n-prefs','url':'https://www.amazon.fr','value':'EUR'},"
             "    ]); "
             "    p2 = ctx.new_page(); "
             "    try: "
@@ -203,7 +211,7 @@ def _keyword_curl_fetch(search_url):
     Lightweight -- meant for keyword searches (5-10 per scan), avoids the broken CloakBrowser singleton.
     """
     import subprocess as sp
-    from sources.amazon_uk import _is_valid_response, USER_AGENT, GBP_COOKIES
+    from sources.amazon_fr import _is_valid_response, FR_USER_AGENT, EUR_COOKIES
 
     # Strategy 1: Direct curl with desktop + mobile UAs (search pages less aggressively blocked)
     ua_list = [
@@ -216,12 +224,12 @@ def _keyword_curl_fetch(search_url):
                 ["curl", "-s", "-L", "--compressed",
                  "--connect-timeout", "8", "--max-time", "20",
                  "-H", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                 "-H", "Accept-Language: en-GB,en;q=0.9",
+                 "-H", "Accept-Language: fr-FR,fr;q=0.9,en;q=0.8",
                  "-H", "Accept-Encoding: gzip, deflate, br",
                  "-H", "Cache-Control: no-cache",
                  "-H", "Pragma: no-cache",
                  "-H", f"User-Agent: {ua}",
-                 "-b", GBP_COOKIES,
+                 "-b", EUR_COOKIES,
                  search_url],
                 capture_output=True, text=True, timeout=30
             )
@@ -237,7 +245,7 @@ def _keyword_curl_fetch(search_url):
         headers = {
             "User-Agent": ua_list[0],
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-GB,en;q=0.9",
+            "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
             "Accept-Encoding": "gzip, deflate, br",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
@@ -260,7 +268,7 @@ def search_amazon_by_keyword(keyword, max_products=5):
     2. _keyword_playwright_fetch (dedicated browser, separate from singleton)
     3. BrowserAct (slow, different fingerprint)
     """
-    search_url = f"https://www.amazon.co.uk/s?k={urllib.parse.quote(keyword)}"
+    search_url = f"https://www.amazon.fr/s?k={urllib.parse.quote(keyword)}"
 
     # Try 1: _curl_fetch (CloakBrowser with greenlet fallback now)
     html = _curl_fetch(search_url)
@@ -294,18 +302,18 @@ def _dedicated_browser_search(search_url, browser):
     """
     try:
         ctx = browser.new_context(
-            locale='en-GB', timezone_id='Europe/London',
+            locale='fr-FR', timezone_id='Europe/Paris',
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         )
-        # Set GBP cookies so Amazon returns UK prices instead of CNY
+        # Set EUR/fr-FR cookies so Amazon FR returns French EUR prices
         ctx.add_cookies([
-            {"name": "lc-main", "url": "https://www.amazon.co.uk", "value": "en_GB"},
-            {"name": "i18n-prefs", "url": "https://www.amazon.co.uk", "value": "GBP"},
+            {"name": "lc-main", "url": "https://www.amazon.fr", "value": "fr_FR"},
+            {"name": "i18n-prefs", "url": "https://www.amazon.fr", "value": "EUR"},
         ])
         page = ctx.new_page()
         try:
             # Step 1: Navigate to homepage first (establishes session)
-            page.goto('https://www.amazon.co.uk', timeout=30000, wait_until='domcontentloaded')
+            page.goto('https://www.amazon.fr', timeout=30000, wait_until='domcontentloaded')
             page.wait_for_timeout(2000)
 
             # Step 2: Extract keyword from search_url and submit via search form
@@ -339,12 +347,12 @@ def _keyword_cloak_fetch(search_url, browser):
     """
     try:
         ctx = browser.new_context(
-            locale='en-GB', timezone_id='Europe/London',
+            locale='fr-FR', timezone_id='Europe/Paris',
         )
-        # Set GBP cookies so Amazon returns UK prices instead of CNY
+        # Set EUR/fr-FR cookies so Amazon FR returns French EUR prices
         ctx.add_cookies([
-            {"name": "lc-main", "url": "https://www.amazon.co.uk", "value": "en_GB"},
-            {"name": "i18n-prefs", "url": "https://www.amazon.co.uk", "value": "GBP"},
+            {"name": "lc-main", "url": "https://www.amazon.fr", "value": "fr_FR"},
+            {"name": "i18n-prefs", "url": "https://www.amazon.fr", "value": "EUR"},
         ])
         page = ctx.new_page()
         try:
@@ -400,7 +408,7 @@ def run_keyword_scan(max_discovery_kws=5, max_festival_kws=5, max_products_per_k
                 source = kw_info["source"]
 
                 print(f"  🔍 [{source}] {keyword}...", file=sys.stderr, end="")
-                search_url = f"https://www.amazon.co.uk/s?k={urllib.parse.quote(keyword)}"
+                search_url = f"https://www.amazon.fr/s?k={urllib.parse.quote(keyword)}"
 
                 html = _dedicated_browser_search(search_url, browser)
                 if not html or len(html) < 2000:
@@ -465,7 +473,7 @@ def run_keyword_scan(max_discovery_kws=5, max_festival_kws=5, max_products_per_k
         for kw_info in all_kws:
             keyword = kw_info["keyword"]
             source = kw_info["source"]
-            search_url = f"https://www.amazon.co.uk/s?k={urllib.parse.quote(keyword)}"
+            search_url = f"https://www.amazon.fr/s?k={urllib.parse.quote(keyword)}"
 
             # Strategy 1: subprocess Playwright (bypasses asyncio conflict)
             html = ""
@@ -581,4 +589,4 @@ if __name__ == "__main__":
         products = run_keyword_scan()
         print(f"\n📊 Found {len(products)} products")
         for p in products[:5]:
-            print(f"  [{p.get('keyword_source', '?')}] £{p['price']} | {p['name'][:60]}")
+            print(f"  [{p.get('keyword_source', '?')}] €{p['price']} | {p['name'][:60]}")

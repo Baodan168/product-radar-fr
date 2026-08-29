@@ -5,6 +5,13 @@
 1. **项目创建** - `/home/lee/product-radar-fr/`
 2. **代码推送** - `https://github.com/Baodan168/product-radar-fr`
 3. **GitHub Actions workflow** - 已创建 `.github/workflows/pages.yml`
+4. **cron_scan.sh 修复** - 部署 URL 指向 FR 站点，文案改为 FR
+5. **oa/dashboard.py 修复** - 节日引擎使用 `fr_season_engine`，字段兼容
+6. **sources/amazon_fr.py 修复** - 添加 Cloudflare Worker 代理作为 fallback
+7. **run_scan_v2.py 修复** - 集成 Amazon FR 扫描，`all_products` 合并 UK+FR
+8. **detail_verifier.py 修复** - 根据 platform 字段选择对应站点详情页抓取器
+9. **selection_report.py 修复** - 链接指向 FR 站点
+10. **discovery_feishu_push.py 修复** - 添加 SITE_NAME/SITE_URL 常量
 
 ## ⚠️ 需要手动操作
 
@@ -20,72 +27,53 @@
 
 ---
 
+## 🔧 下一步（可选）
+
+### 1. 配置 Hermes cron 任务
+
+法国站扫描需在 Hermes 中添加独立定时任务（07:30 和 20:30 北京时间）：
+
+```bash
+# 在 Hermes 中添加 cron 任务
+cd /home/lee/product-radar-fr && python3 run_scan_v2.py >> logs/fr_scan.log 2>&1
+```
+
+### 2. 首次扫描测试
+
+```bash
+cd /home/lee/product-radar-fr
+python3 sources/amazon_fr.py          # 单独测试 FR 爬虫
+python3 run_scan_v2.py                # 完整扫描
+python3 generate_portal.py            # 生成门户
+python3 -m http.server 8082           # 本地预览
+```
+
+---
+
 ## 📊 配置参数（已自动设置）
 
 | 参数 | UK值 | FR值 |
 |------|------|------|
 | 价格带 | £5.99-12.99 | **€6.99-10.99** |
 | FBA费用 | £1.46 | **€2.79** |
-| 佣金率 | 15% | 15% |
-| VAT | 16.7% | **20%** |
+| 佣金率 | 15% | 15%（家居12%，宠物8%） |
+| VAT | 20% | **20%** |
 | 抓取源 | amazon.co.uk | **amazon.fr** |
-| 趋势源 | google_trends_uk | **google_trends_fr** |
-| Reddit源 | r/CasualUK等 | **r/France等** |
-| 节日数据 | UK节日 | **复用UK（北半球相同）** |
+| 节日数据 | UK节日 | **合并FR专属+UK通用** |
+| 季节引擎 | season_engine | **fr_season_engine** |
 
 ---
 
-## 🔧 下一步（可选）
+## 📝 已知限制
 
-### 1. 运行首次扫描测试
-```bash
-cd /home/lee/product-radar-fr
-python3 sources/amazon_fr.py
-python3 generate_platform.py
-python3 generate_portal.py
-python3 -m http.server 8082
-# 浏览器访问 http://localhost:8082/output/
-```
+### 1. 爬虫稳定性
+- Amazon FR 直连返回 0 产品（可能是 GFW 干扰或反爬）
+- Cloudflare Worker 代理尚未确认可用性
+- **建议**：开启 FlClash 代理后手动测试
 
-### 2. 添加Hermes定时任务（等Weekend Build额度用完后）
-法国站cron可设置在07:30和20:30北京时间（对应法国06:30/19:30）
+### 2. 补货数据
+- 补货告警来自 UK 站点（007/027店），与法国站独立
+- 法国站启动后需配置独立补货数据源
 
-### 3. 调整节日数据
-如果法国特有节日缺失，可以手动编辑 `data/festivals_data.js`
-
----
-
-## 🎯 预计Token消耗（已完成）
-
-| 任务 | 消耗 |
-|------|------|
-| 项目初始化 | ~5M |
-| 代码推送 | ~2M |
-| **总计** | **~7M** |
-
-**剩余约 293M tokens**
-
----
-
-## 📝 故障排查
-
-### 问题：Pages显示404
-- 检查是否启用了GitHub Pages（ Settings → Pages ）
-- 确认 `.nojekyll` 文件存在
-- 等待1-2分钟让GitHub构建
-
-### 问题：扫描失败
-- 检查FlClash是否运行
-- 检查 `~/.hermes/.env` 是否有 scraperapi key
-- 检查亚马逊.fr是否有反爬
-
-### 问题：利润计算不对
-- 检查 `calc_profit.py` 中的法国参数
-- 确认汇率 `exchange_rate_cny_eur = 8.0`
-
----
-
-## 🌐 部署链接
-
-- **GitHub**: https://github.com/Baodan168/product-radar-fr
-- **Pages（启用后）**: https://baodan168.github.io/product-radar-fr/
+### 3. cron 任务
+- 目前无法国站独立 cron，需手动添加

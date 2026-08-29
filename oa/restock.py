@@ -53,6 +53,11 @@ def parse_analysis(path=None) -> CardData:
     except OSError as e:
         return CardData.fail(f'读取补货页失败: {e}')
 
+    # FR 站 2026-08-29 起补货数据与 UK 不通用：占位页带 empty 标记，
+    # 走 absent（ℹ️ 数据不可用），不能按「模板变了」误报成 fail（⚠️）
+    if 'data-restock-status="empty"' in raw:
+        return CardData.absent('FR 补货数据源未接入，暂无数据（不与 UK 通用）')
+
     rows = re.findall(r'<tr([^>]*)>(.*?)</tr>', raw, re.S)
     if not rows:
         return CardData.fail('补货页里没找到表格行，上游模板可能变了')

@@ -171,16 +171,23 @@ def test_shipped_analysis_files_have_no_sensitive_data():
 
 @pytest.mark.skipif(not ANALYSIS.is_dir(), reason='本地没有补货产物')
 def test_shipped_analysis_files_keep_decision_fields():
-    """脱敏不能把补货决策需要的字段一起带走。"""
+    """脱敏不能把补货决策需要的字段一起带走。
+
+    FR 站 2026-08-29 起补货数据与 UK 解耦：占位页（data-restock-status="empty"）
+    没有决策字段，直接跳过，等 FR 数据源接入后再恢复强校验。
+    """
     index = ANALYSIS / 'index.html'
     if index.exists():
         text = index.read_text(encoding='utf-8')
-        for keep in ('售价', '可售天数', '建议补货', '运输方式'):
-            assert keep in text, f'index.html 丢了 {keep}'
+        if 'data-restock-status="empty"' not in text:
+            for keep in ('售价', '可售天数', '建议补货', '运输方式'):
+                assert keep in text, f'index.html 丢了 {keep}'
 
     details = [f for f in ANALYSIS.glob('*.html') if f.name != 'index.html']
     for f in details[:5]:
         text = f.read_text(encoding='utf-8')
+        if 'data-restock-status="empty"' in text:
+            continue
         for keep in ('售价', '库存状态', 'FBA可售'):
             assert keep in text, f'{f.name} 丢了 {keep}'
 

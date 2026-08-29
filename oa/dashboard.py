@@ -26,6 +26,17 @@ from .health import collect_freshness
 from .restock import parse_analysis
 from .urls import safe_url
 
+# 价格符号跟站点走（config.json currency: EUR→€ / GBP→£），不再硬编码
+_CURRENCY_SYMBOL = {'EUR': '€', 'GBP': '£', 'USD': '$', 'AUD': 'A$'}
+
+
+def _currency_symbol() -> str:
+    try:
+        cfg = json.loads((BASE / 'config.json').read_text(encoding='utf-8'))
+        return _CURRENCY_SYMBOL.get(cfg.get('currency', 'EUR'), '€')
+    except Exception:
+        return '€'
+
 
 # ── 数据装配 ────────────────────────────────────────────
 
@@ -80,39 +91,68 @@ def collect_festivals(now=None, window_days=47) -> CardData:
     """节日倒计时。
 
     窗口取 47 天 —— PROJECT-VISION §2.1 写的「提前 30-47 天预警」，
-    对应海运备货周期。
+    对应海运备货周期。窗口内没有节点时，降级展示窗口外最近节点
+    （空卡不如给出「下一个要盯什么」，尤其节点间常有 5-8 周空窗）。
     """
+    now = now or datetime.now()
     try:
-        from season_engine import get_upcoming_events
-        events = get_upcoming_events(days_ahead=window_days)
+        # 法国站优先使用 fr_season_engine，回退到 UK season_engine
+        try:
+            from fr_season_engine import get_upcoming_events as fr_get_events
+            get_events = fr_get_events
+        except ImportError:
+            from season_engine import get_upcoming_events as get_events
+        events = get_events(days_ahead=window_days)
+        note = ''
+        if not events:
+            events = get_events(days_ahead=120)
+            if events:
+                note = f'{window_days} 天备货窗口内没有节点，以下为窗口外最近节点'
     except Exception as e:
         return CardData.fail(f'季节引擎不可用: {e}')
 
     if not events:
-        return CardData.absent(f'未来 {window_days} 天没有节点')
+        return CardData.absent(f'未来 120 天没有节点')
 
     rows = []
     for ev in events[:4]:
-        cats = ev.get('recommended_categories') or []
-        rows.append({
-            'name': ev.get('event_name') or '',
-            'date': ev.get('date') or '',
-            'days': ev.get('days_until'),
-            'cats': '、'.join(cats[:4]),
+        # fr_season_engine 与 UK season_engine 字段结构一致（event_name/days_until/
+        # recommended_categories/sourcing_deadline_air），keywords/name 仅为旧引擎兜底
+        name = ev.get('event_name') or ev.get('name') or ''
+        date = ev.get('date') or ''
+        days = ev.get('days_until')
+        if days is None and date:
+            try:
+                days = (datetime.strptime(date, '%Y-%m-%d').date() - now.date()).days
+            except ValueError:
+                days = None
+        cats = ev.get('recommended_categories') or ev.get('keywords') or []
+        row = {
+            'name': name,
+            'date': date,
+            'days': days,
+            'cats': ev.get('region_tag') or '、'.join(cats[:4]),
             'deadline_air': ev.get('sourcing_deadline_air') or '',
-        })
-    return CardData(payload={'rows': rows, 'window': window_days})
+        }
+        rows.append(row)
+    return CardData(payload={'rows': rows, 'window': window_days, 'note': note})
 
 
 def _festival_icon(name: str) -> str:
     """给节点配个图标。season_engine 不带 icon，按关键词兜一下。"""
     n = (name or '').lower()
     table = [
-        ('school', '🎒'), ('christmas', '🎄'), ('halloween', '🎃'),
-        ('valentine', '💝'), ('easter', '🐣'), ('mother', '💐'),
-        ('father', '👔'), ('black friday', '🛒'), ('summer', '☀️'),
-        ('autumn', '🍂'), ('winter', '❄️'), ('spring', '🌱'),
-        ('bank holiday', '🏖️'), ('new year', '🎆'),
+        ('school', '🎒'), ('rentrée', '🎒'), ('christmas', '🎄'), ('noël', '🎄'),
+        ('noel', '🎄'), ('marché', '🎄'), ('halloween', '🎃'), ('citrouille', '🎃'),
+        ('valentine', '💝'), ('valentin', '💝'), ('easter', '🐣'), ('pâques', '🐣'),
+        ('mother', '💐'), ('mères', '💐'), ('muguet', '💐'),
+        ('father', '👔'), ('pères', '👔'),
+        ('black friday', '🛒'), ('soldes', '🛒'), ('cyber', '🛒'),
+        ('summer', '☀️'), ('vacances', '☀️'), ('plage', '☀️'), ('bbq', '☀️'),
+        ('autumn', '🍂'), ('automne', '🍂'), ('winter', '❄️'), ('spring', '🌱'),
+        ('bank holiday', '🏖️'), ('new year', '🎆'), ('musique', '🎵'),
+        ('beaujolais', '🍷'), ('toussaint', '🕯️'), ('epiphanie', '👑'),
+        ('chandeleur', '🥞'), ('nationale', '🇫🇷'), ('assomption', '⛪'),
     ]
     for kw, icon in table:
         if kw in n:
@@ -199,7 +239,7 @@ def render_radar_card(card: CardData) -> str:
         )
         meta = []
         if pick['price'] is not None:
-            meta.append(f'<span class="oa-pick-price">£{render.h(pick["price"])}</span>')
+            meta.append(f'<span class="oa-pick-price">{_currency_symbol()}{render.h(pick["price"])}</span>')
         if pick['margin_pct'] is not None:
             meta.append(f'<span>利润 {render.h(pick["margin_pct"])}%</span>')
         if pick['signal']:
@@ -271,7 +311,13 @@ def render_festival_card(card: CardData) -> str:
             f'<span class="oa-fest-days{soon}">{render.h(days)}<small>天后</small></span>'
             f'</div>'
         )
-    return _card('📅', '节日倒计时', f'<div class="oa-dash-festivals">{"".join(rows)}</div>',
+    note = card.payload.get('note') or ''
+    note_html = (
+        f'<div class="oa-dash-sub" style="margin:0 0 8px;font-size:11.5px">{render.h(note)}</div>'
+        if note else ''
+    )
+    return _card('📅', '节日倒计时',
+                 f'{note_html}<div class="oa-dash-festivals">{"".join(rows)}</div>',
                  '#/platform', '节日选品')
 
 

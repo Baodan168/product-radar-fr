@@ -246,11 +246,16 @@ def test_festival_data_file_has_no_unflagged_compliance_violations():
     """
     from festival_engine import _extract_js_array, _parse_js_array, BASE as FESTIVAL_BASE
 
-    content = (FESTIVAL_BASE / 'data' / 'festivals_data.js').read_text(encoding='utf-8')
+    # FR 仓库的节日主数据是 fr_festivals_data.js（UK 是 festivals_data.js），
+    # 兼容两种命名；测试认仓库里提交的这份，不跟本机环境漂移
+    fest_path = FESTIVAL_BASE / 'data' / 'fr_festivals_data.js'
+    if not fest_path.exists():
+        fest_path = FESTIVAL_BASE / 'data' / 'festivals_data.js'
+    content = fest_path.read_text(encoding='utf-8')
     js_array = _extract_js_array(content, 'const FESTIVALS = ')
-    assert js_array, 'data/festivals_data.js 里没找到 FESTIVALS 数组'
+    assert js_array, f'{fest_path.name} 里没找到 FESTIVALS 数组'
     data = _parse_js_array(js_array)
-    assert data, 'data/festivals_data.js 解析失败或为空'
+    assert data, f'{fest_path.name} 解析失败或为空'
 
     violations = []
     for f in data:

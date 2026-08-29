@@ -156,9 +156,15 @@ def calc_profit(price_gbp, category="general"):
     elif "pet" in category.lower():
         comm_rate = c["commission_pets"]
 
+    # FBA 费用以英镑计价（2026-08-29 确认）：FR 站售价是 EUR，
+    # 按 CNY 中间价把 2.79 GBP 折成 EUR 计入成本（2.79×7.3/8.0≈2.55€）
+    fba = c["fba_small_standard"]
+    if CONFIG.get("currency") == "EUR" and CONFIG.get("exchange_rate_cny_gbp") \
+            and CONFIG.get("exchange_rate_cny_eur"):
+        fba = round(fba * CONFIG["exchange_rate_cny_gbp"] / CONFIG["exchange_rate_cny_eur"], 2)
+
     vat = price_gbp * c["vat_rate"]
     commission = price_gbp * comm_rate
-    fba = c["fba_small_standard"]
     ads = price_gbp * c["ad_rate"]
     returns = price_gbp * c["return_rate"]
     sourcing = c.get("sourcing_cost", 0.80)

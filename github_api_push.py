@@ -6,7 +6,7 @@ import urllib.request
 import urllib.error
 import http.client
 
-REPO = 'Baodan168/product-radar'
+REPO = 'Baodan168/product-radar-fr'
 BRANCH = 'main'
 
 # 部署只推「内容变化」的文件：用 sha1 状态文件记录上次推送的文件指纹，
@@ -138,6 +138,29 @@ def _upload_batch(batch):
         items.append({'path': rel_path, 'mode': '100644', 'type': 'blob', 'sha': blob['sha']})
     return items
 
+def delete_paths(paths, message):
+    """从远端仓库删除一批文件（Git Trees API：sha=null 的 tree entry 即删除）。
+
+    2026-08-29 补货跟进与 UK 解耦时用：output/analysis 下 112 个 UK SKU
+    详情页必须从线上移除，push_files 只会新增/更新、不会删文件。
+    """
+    if not paths:
+        print('  无待删除文件')
+        return
+    ref = api('GET', f'/repos/{REPO}/git/refs/heads/{BRANCH}')
+    head_sha = ref['object']['sha']
+    commit = api('GET', f'/repos/{REPO}/git/commits/{head_sha}')
+    tree = api('POST', '/repos/{0}/git/trees'.format(REPO), {
+        'base_tree': commit['tree']['sha'],
+        'tree': [{'path': p, 'mode': '100644', 'type': 'blob', 'sha': None} for p in paths],
+    })
+    new_commit = api('POST', f'/repos/{REPO}/git/commits', {
+        'message': message, 'tree': tree['sha'], 'parents': [head_sha]
+    })
+    api('PATCH', f'/repos/{REPO}/git/refs/heads/{BRANCH}', {'sha': new_commit['sha']})
+    print(f'  ✅ 已删除 {len(paths)} 个远端文件')
+
+
 if __name__ == '__main__':
     base = os.path.dirname(os.path.abspath(__file__))
     files = []
@@ -173,5 +196,30 @@ if __name__ == '__main__':
         if os.path.exists(fp):
             files.append((f, fp))
 
+    # ⚠️ 2026-08-29 审查修复（FR 站）：
+    # 1) REPO 原来写死 Baodan168/product-radar —— FR 的定时部署一直在往 UK 仓库推，
+    #    product-radar-fr 仓库里 output/ 只有 index/platform 两个文件，
+    #    线上 assets/portal.js、data/*.js、shared/oa-theme.css 全部 404，
+    #    门户时钟停摆、板块探针全挂（「板块加载失败」）都是它。
+    # 2) shared/oa-theme.css 漏推：index/platform 用相对路径 shared/ 引用，
+    #    必须落到 output/shared/ 下。
+    shared_css = os.path.join(base, 'shared', 'oa-theme.css')
+    if os.path.exists(shared_css):
+        files.append(('output/shared/oa-theme.css', shared_css))
+
     msg = sys.argv[1] if len(sys.argv) > 1 else 'auto-push'
+
+    # --delete-file <path>：删除单个远端文件（可多次出现）
+    if '--delete-file' in sys.argv:
+        idx = sys.argv.index('--delete-file')
+        delete_paths([a for a in sys.argv[idx + 1:] if not a.startswith('--')][0:1], msg)
+        sys.exit(0)
+
+    # --delete-list <file>：从文件里批量删除（每行一个远端路径）
+    if '--delete-list' in sys.argv:
+        lst = sys.argv[sys.argv.index('--delete-list') + 1]
+        paths = [l.strip() for l in open(lst, encoding='utf-8') if l.strip()]
+        delete_paths(paths, msg)
+        sys.exit(0)
+
     push_files(files, msg)

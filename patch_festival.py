@@ -53,8 +53,8 @@ new_func_lines = [
     '    for key, info in SEASONS.items():',
     '        active = \' season-btn-active\' if key == cur else \'\'',
     '        btns.append(',
-    '            f\'<button class="season-btn{active}" data-season="{key}" \',
-    '            f\'onclick="setSeason(this, \\'{key}\\')">\'>\',
+    '            f\'<button class="season-btn{active}" data-season="{key}" \','
+    '            f\'onclick="setSeason(this, \\\'{key}\\\')">\','
     '            f\'{info["icon"]} {info["label"]}({info["months"][0]}-{info["months"][-1]}\\u6708)</button>\'',
     '        )',
     '    season_nav = f\'<div class="season-nav">{" ".join(btns)}</div>\'',

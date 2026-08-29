@@ -15,6 +15,7 @@ from collections import Counter
 DATA_DIR = Path(__file__).parent / "data"
 DISCOVERY_DIR = DATA_DIR / "discovery"
 CHANNELS_DIR = DATA_DIR / "channels"
+SITE_URL = "https://Baodan168.github.io/product-radar-fr/output/index.html"
 
 
 def _load_json(path):
@@ -116,7 +117,7 @@ def _get_radar_highlights(radar_data, top_n=5):
                 highlights.append({
                     "category": name,
                     "trend_score": f"分数{score}",
-                    "demand_label": f"£{price:.2f} | {reviews}评论 {ocean} | 利润率{margin*100:.0f}%",
+                    "demand_label": f"€{price:.2f} | {reviews}评论 {ocean} | 利润率{margin*100:.0f}%",
                     "demand_level": sources,
                 })
             return highlights
@@ -258,7 +259,7 @@ def generate_daily_report(target_date=None):
     # ── Bitable link ──
     lines.append("---")
     lines.append("📋 [飞书多维表格](https://feishu.cn) — 团队协作选品追踪")
-    lines.append("🔗 [选品平台](https://Baodan168.github.io/product-radar/platform.html)")
+    lines.append(f"🔗 [选品平台]({SITE_URL})")
 
     return "\n".join(lines)
 

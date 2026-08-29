@@ -25,28 +25,34 @@ from pathlib import Path
 BASE = Path(__file__).parent
 sys.path.insert(0, str(BASE))
 
-from sources.amazon_uk import _curl_fetch
+from sources.amazon_uk import _curl_fetch as _curl_fetch_uk
+from sources.amazon_fr import _curl_fetch as _curl_fetch_fr
 
 
 # ---------- 解析 ----------
 
 def _norm_weight(text):
-    """'220 g' / '0.2 kg' / '7.05 oz' / '0.44 lb' → 克数；无数据返回 None"""
+    """'220 g' / '0.2 kg' / '7.05 oz' / '0.44 lb' / '0,37 kilogrammes' → 克数；无数据返回 None
+
+    法国站详情页是逗号小数（'0,37 kilogrammes'）+ 法语单位（grammes/kilogrammes/
+    onces/livres），一并兼容。
+    """
     if not text:
         return None
     m = re.search(
-        r"(\d+(?:\.\d+)?)\s*(kilograms?|kilos?|kg|grams?|g|ounces?|oz|pounds?|lb)\b",
+        r"(\d+(?:[.,]\d+)?)\s*"
+        r"(kilogrammes?|kilograms?|kilos?|kg|grammes?|grams?|g|onces?|ounces?|oz|livres?|pounds?|lb)\b",
         text, re.I,
     )
     if not m:
         return None
-    val = float(m.group(1))
+    val = float(m.group(1).replace(",", "."))
     unit = m.group(2).lower()
-    if unit in ("kg", "kilogram", "kilograms", "kilo", "kilos"):
+    if unit in ("kg", "kilogram", "kilograms", "kilogramme", "kilogrammes", "kilo", "kilos"):
         return val * 1000
-    if unit in ("oz", "ounce", "ounces"):
+    if unit in ("oz", "ounce", "ounces", "once", "onces"):
         return val * 28.35
-    if unit in ("lb", "pound", "pounds"):
+    if unit in ("lb", "pound", "pounds", "livre", "livres"):
         return val * 453.6
     return val
 
@@ -80,21 +86,22 @@ def _extract_attr(html, label):
 # 只认 "A x B" / "A x B x C" 这种真正的尺寸表达式。
 # 不能用 findall 扫全串取前三个数：详情页的属性值常带尾巴（"25 x 20 cm; 15 g"），
 # 那个 15 是克重，会被当成 15cm 的第三维，于是 2D 商品按 3D 判、15>6 被误杀。
+# 法国站小数是逗号（'19,5 x 12,5 x 5,5 cm'），一并兼容。
 _DIM_EXPR = re.compile(
-    r"(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)"
-    r"(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?",
+    r"(\d+(?:[.,]\d+)?)\s*[x×*]\s*(\d+(?:[.,]\d+)?)"
+    r"(?:\s*[x×*]\s*(\d+(?:[.,]\d+)?))?",
     re.I,
 )
 # 单位必须按词边界认。曾经写成 `"in" in text.lower()`，结果命中的是材质词里的 in ——
 # Stainless / Linen / Printed 全中，尺寸被乘 2.54。"30 x 21 x 6 cm; Stainless Steel"
 # 这种正好卡在限值上的合格品会被算成 76x53x15 毙掉，而限值就是 30x21x6，
-# 越贴近限值的合格品越容易中招。
-_UNIT_INCH = re.compile(r'(?:\binch(?:es)?\b|\bins?\b|["″])', re.I)
-_UNIT_MM = re.compile(r"\b(?:mm|millimet(?:er|re)s?)\b", re.I)
+# 越贴近限值的合格品越容易中招。法语：pouces=英寸, millimètres=毫米。
+_UNIT_INCH = re.compile(r'(?:\binch(?:es)?\b|\bins?\b|\bpouces?\b|["″])', re.I)
+_UNIT_MM = re.compile(r"\b(?:mm|millimet(?:er|re)s?|millimètres?)\b", re.I)
 
 
 def _norm_dims(text):
-    """'15 x 15 x 45 centimetres' / '44.5 x 15cm' / '80 x 40in' → cm 数值列表(降序)。
+    """'15 x 15 x 45 centimetres' / '44.5 x 15cm' / '80 x 40in' / '19,5 x 12,5 cm' → cm 数值列表(降序)。
 
     无法解析出尺寸表达式时返回 None（调用方据此判为「未验证」，不拦截）。
     """
@@ -103,7 +110,7 @@ def _norm_dims(text):
     m = _DIM_EXPR.search(text)
     if not m:
         return None
-    vals = [float(g) for g in m.groups() if g is not None]
+    vals = [float(g.replace(",", ".")) for g in m.groups() if g is not None]
 
     # 单位只看尺寸表达式后面那一小段，避免被属性值尾巴上的材质、克重干扰
     tail = text[m.end():m.end() + 24]
@@ -133,7 +140,12 @@ def verify_product(p, config):
     max_l, max_wd, max_h = md["l_cm"], md["w_cm"], md["h_cm"]
 
     try:
-        html = _curl_fetch(f"https://www.amazon.co.uk/dp/{asin}")
+        # 根据 platform 字段选择对应站点的详情页抓取器
+        platform = p.get("platform", "Amazon")
+        if platform == "Amazon-FR" or "fr" in p.get("amazon_url", "").lower():
+            html = _curl_fetch_fr(f"https://www.amazon.fr/dp/{asin}")
+        else:
+            html = _curl_fetch_uk(f"https://www.amazon.co.uk/dp/{asin}")
     except Exception:
         return True, None, False  # 抓取失败不误杀
     if not html or len(html) < 2000:
@@ -142,8 +154,16 @@ def verify_product(p, config):
     reasons = []
     data_found = False
 
-    # 重量
-    wt_text = _extract_attr(html, "Item Weight") or _extract_attr(html, "Item weight")
+    # Amazon 前端会把撇号写成 &#39;（法语属性名 'Poids de l'article' 高频出现），
+    # 统一还原后再做标签匹配
+    html_norm = html.replace("&#39;", "'")
+
+    # 重量 — 英/法标签都试（FR 站混合 UK/FR 两地 ASIN）
+    wt_text = (
+        _extract_attr(html_norm, "Item Weight")
+        or _extract_attr(html_norm, "Poids de l'article")
+        or _extract_attr(html_norm, "Poids du colis")
+    )
     if wt_text:
         data_found = True
         grams = _norm_weight(wt_text)
@@ -152,10 +172,12 @@ def verify_product(p, config):
 
     # 尺寸
     dim_text = (
-        _extract_attr(html, "Item Dimensions")
-        or _extract_attr(html, "Item dimensions")
-        or _extract_attr(html, "Package Dimensions")
-        or _extract_attr(html, "Package dimensions")
+        _extract_attr(html_norm, "Item Dimensions")
+        or _extract_attr(html_norm, "Package Dimensions")
+        or _extract_attr(html_norm, "Dimensions de l'article")
+        or _extract_attr(html_norm, "Dimensions du produit")
+        or _extract_attr(html_norm, "Dimensions du colis")
+        or _extract_attr(html_norm, "Dimensions de l'emballage")
     )
     if dim_text:
         data_found = True

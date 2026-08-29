@@ -36,11 +36,16 @@ def estimate_daily_sales(bsr: int, category: str = "general") -> int:
     return max(1, int(base * mult))
 
 
-async def scrape_product(page, asin: str) -> dict:
-    """Scrape a single Amazon UK product page for BSR and details."""
-    url = f"https://www.amazon.co.uk/dp/{asin}"
+async def scrape_product(page, asin: str, domain: str = "co.uk") -> dict:
+    """Scrape a single Amazon product page for BSR and details.
+
+    FR 站扫描混合 UK/FR 两地 ASIN：按 domain 路由到对应站点，
+    FR ASIN 在 .co.uk 上查不到，反之亦然。
+    """
+    url = f"https://www.amazon.{domain}/dp/{asin}"
     result = {
         "asin": asin,
+        "domain": domain,
         "bsr_rank": None,
         "bsr_category": None,
         "bsr_sub_rank": None,
@@ -128,9 +133,16 @@ async def scrape_product(page, asin: str) -> dict:
     return result, status
 
 
-async def scrape_batch(asins: list[str], concurrency: int = 3) -> list[dict]:
-    """Scrape multiple ASINs with controlled concurrency."""
+async def scrape_batch(targets, concurrency: int = 3) -> list[dict]:
+    """Scrape multiple ASINs with controlled concurrency.
+
+    targets: list[str]（默认 UK 站）或 list[tuple[asin, domain]]，
+    domain 形如 'co.uk' / 'fr'。
+    """
     from playwright.async_api import async_playwright
+
+    # 归一化为 (asin, domain)
+    norm = [(t, "co.uk") if isinstance(t, str) else (t[0], t[1]) for t in targets]
 
     results = []
     async with async_playwright() as p:
@@ -140,24 +152,27 @@ async def scrape_batch(asins: list[str], concurrency: int = 3) -> list[dict]:
         )
         context = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            locale="en-GB",
+            locale="fr-FR",
         )
-        # Set cookies to bypass Amazon consent dialog
+        # Set cookies to bypass Amazon consent dialog（双站点都预置）
         await context.add_cookies([
             {"name": "sp-cc", "value": "1", "domain": ".amazon.co.uk", "path": "/"},
             {"name": "lc-main", "value": "en_GB", "domain": ".amazon.co.uk", "path": "/"},
             {"name": "i18n-prefs", "value": "GBP", "domain": ".amazon.co.uk", "path": "/"},
+            {"name": "sp-cc", "value": "1", "domain": ".amazon.fr", "path": "/"},
+            {"name": "lc-main", "value": "fr_FR", "domain": ".amazon.fr", "path": "/"},
+            {"name": "i18n-prefs", "value": "EUR", "domain": ".amazon.fr", "path": "/"},
         ])
 
         # Process in batches to control concurrency
-        for i in range(0, len(asins), concurrency):
-            batch = asins[i:i + concurrency]
+        for i in range(0, len(norm), concurrency):
+            batch = norm[i:i + concurrency]
             pages = []
-            for asin in batch:
+            for asin, domain in batch:
                 page = await context.new_page()
-                pages.append((page, asin))
+                pages.append((page, asin, domain))
 
-            tasks = [scrape_product(page, asin) for page, asin in pages]
+            tasks = [scrape_product(page, asin, domain) for page, asin, domain in pages]
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in batch_results:
@@ -168,15 +183,15 @@ async def scrape_batch(asins: list[str], concurrency: int = 3) -> list[dict]:
                     asin = data["asin"]
                     bsr = data["bsr_rank"]
                     reviews = data["reviews"]
-                    print(f"  {status} {asin}: BSR={bsr} reviews={reviews}", file=sys.stderr)
+                    print(f"  {status} {asin}(.{data.get('domain', 'co.uk')}): BSR={bsr} reviews={reviews}", file=sys.stderr)
                     results.append(data)
 
             # Close pages
-            for page, _ in pages:
+            for page, _, _ in pages:
                 await page.close()
 
             # Small delay between batches
-            if i + concurrency < len(asins):
+            if i + concurrency < len(norm):
                 await asyncio.sleep(1)
 
         await browser.close()
@@ -249,10 +264,19 @@ def main():
         with open(latest, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        asins = [p["asin"] for p in data.get("products", []) if p.get("asin")]
-        print(f"Scraping {len(asins)} products...")
+        # 按 amazon_url 域名路由（FR 产品去 .fr 查，UK 产品去 .co.uk 查）
+        targets = []
+        for p_ in data.get("products", []):
+            if not p_.get("asin"):
+                continue
+            au = (p_.get("amazon_url") or "").lower()
+            domain = "fr" if ("amazon.fr" in au or p_.get("platform") == "Amazon-FR") else "co.uk"
+            targets.append((p_["asin"], domain))
+        print(f"Scraping {len(targets)} products "
+              f"(fr={sum(1 for _, d in targets if d == 'fr')}, "
+              f"uk={sum(1 for _, d in targets if d == 'co.uk')})...")
 
-        bsr_data = asyncio.run(scrape_batch(asins))
+        bsr_data = asyncio.run(scrape_batch(targets))
         enriched_data = enrich_radar_data(latest, bsr_data)
 
         # Save
