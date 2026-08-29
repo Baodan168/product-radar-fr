@@ -233,7 +233,15 @@ def generate_platform_html(radar_all=None, discovery_all=None, output_path=None)
     # Phase 2.3: 错误可观测化 — 收集加载失败信息供 debug 区展示
     _load_errors = []
     try:
-        season_events = get_upcoming_events(90)
+        # 优先使用法国季节引擎，回退到UK引擎
+        try:
+            from fr_season_engine import get_upcoming_events as fr_get_events
+            season_events = fr_get_events(90)
+            if not season_events:
+                raise ImportError("France engine returned empty")
+        except ImportError:
+            from season_engine import get_upcoming_events
+            season_events = get_upcoming_events(90)
     except Exception as e:
         season_events = []
         _load_errors.append(f"season_events: {e}")

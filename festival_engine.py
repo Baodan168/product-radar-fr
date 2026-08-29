@@ -70,8 +70,8 @@ def _current_season_key() -> str:
 # load_festivals() 就静默返回 []，generate_platform.py 照样生成一个
 # 节日 Tab 全空的页面，把上一份好数据覆盖掉。加两级仓库内的回退。
 FESTIVAL_SOURCES = [
+    BASE / 'data' / 'fr_festivals_data.js',             # 法国专属节日数据（最高优先级）
     Path('/home/lee/uk-festival-planner/index.html'),   # 原始项目（若在本机）
-    BASE / 'data' / 'fr_festivals_data.js',             # 法国专属节日数据
     BASE / 'data' / 'festivals_data.js',                # 仓库内副本（UK通用）
     BASE / 'output' / 'data' / 'festivals.js',          # 上次生成的产物（纯 JSON）
 ]
@@ -123,7 +123,24 @@ def load_festivals():
     返回空列表代表「一个源都没读到」，调用方必须把它当异常处理，
     不能当成「今年没有节日」——那会覆盖掉好数据。
     """
+    # 首先尝试加载法国专属节日数据
+    fr_festivals = []
+    fr_src = BASE / 'data' / 'fr_festivals_data.js'
+    if fr_src.exists():
+        try:
+            content = fr_src.read_text(encoding='utf-8')
+            js_array = _extract_js_array(content, 'const FESTIVALS = ')
+            if js_array:
+                fr_festivals = _parse_js_array(js_array) or []
+                print(f"  ℹ️ 法国专属节日数据: {len(fr_festivals)} 个")
+        except Exception as e:
+            print(f"  ⚠️ 法国节日数据加载失败: {e}")
+
+    # 然后尝试加载UK/通用节日数据作为补充
+    uk_festivals = []
     for src in FESTIVAL_SOURCES:
+        if src == fr_src:
+            continue  # 跳过法国数据源
         if not src.exists():
             continue
         try:
@@ -136,21 +153,34 @@ def load_festivals():
             try:
                 data = json.loads(content.split('=', 1)[1].strip().rstrip(';'))
                 if data:
-                    return data
+                    uk_festivals = data
+                    print(f"  ℹ️ UK通用节日数据: {len(uk_festivals)} 个")
+                    break
             except (json.JSONDecodeError, IndexError):
                 pass
             continue
 
         js_array = _extract_js_array(content, 'const FESTIVALS = ')
-        if not js_array:
-            continue
-        data = _parse_js_array(js_array)
-        if data:
-            print(f"  ℹ️ 节日数据来自 {src}")
-            return data
+        if js_array:
+            uk_festivals = _parse_js_array(js_array) or []
+            if uk_festivals:
+                print(f"  ℹ️ 通用节日数据来自 {src}: {len(uk_festivals)} 个")
+                break
 
-    print("  ⚠️ 所有节日数据源都读不到，节日 Tab 将为空")
-    return []
+    # 合并数据：法国专属 + UK通用（去重）
+    all_festivals = fr_festivals + uk_festivals
+
+    # 按id去重
+    seen_ids = set()
+    unique_festivals = []
+    for f in all_festivals:
+        fid = f.get('id', '')
+        if fid not in seen_ids:
+            seen_ids.add(fid)
+            unique_festivals.append(f)
+
+    print(f"  ℹ️ 合并后节日总数: {len(unique_festivals)}")
+    return unique_festivals
 
 
 def get_deadlines(festival):
