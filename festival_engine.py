@@ -71,7 +71,8 @@ def _current_season_key() -> str:
 # 节日 Tab 全空的页面，把上一份好数据覆盖掉。加两级仓库内的回退。
 FESTIVAL_SOURCES = [
     Path('/home/lee/uk-festival-planner/index.html'),   # 原始项目（若在本机）
-    BASE / 'data' / 'festivals_data.js',                # 仓库内副本
+    BASE / 'data' / 'fr_festivals_data.js',             # 法国专属节日数据
+    BASE / 'data' / 'festivals_data.js',                # 仓库内副本（UK通用）
     BASE / 'output' / 'data' / 'festivals.js',          # 上次生成的产物（纯 JSON）
 ]
 

@@ -27,7 +27,7 @@
  * （export default），因为 Secret 只能通过 env 参数拿到。
  */
 
-const ALLOWED_HOSTS = ['amazon.co.uk'];
+const ALLOWED_HOSTS = ['amazon.co.uk', 'amazon.fr'];
 const ALLOWED_PATHS = [
   '/gp/new-releases/', '/gp/bestsellers/', '/gp/most-wished-for/',
   '/gp/gifts/', '/gp/movers-and-shakers/', '/s?k=', '/dp/',
@@ -46,7 +46,7 @@ const MAX_VALUE_LEN = 64;
  * 主机是否在白名单内。
  *
  * audit P1：原来是 target.hostname.endsWith(d)，纯字符串后缀匹配没有
- * 主机边界 —— evilamazon.co.uk 满足 endsWith('amazon.co.uk')，
+ * 主机边界 —— evilamazon.co.uk 满足 endsWith('amazon.co.uk', 'amazon.fr')，
  * 但它不是 Amazon。必须按点号边界判子域。
  */
 function hostAllowed(hostname) {
