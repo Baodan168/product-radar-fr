@@ -89,8 +89,8 @@ time_budget 换取更低的扫描频次，而不是砍掉验证。
    （friandises/ampoule/jouet/bébé/vêtement/parfum/arme 等，2026-08-29 补——
    此前法语标题的狗零食、灯泡绕过了纯英文词表）。新增禁售词时同步检查
    data/fr_festivals_data.js 的关键词是否误伤（合规测试会拦）
-5. **别用 git push 部署**：本仓库产物走 API 推送（凭据在 ~/.hermes/github_token.txt），
-   本地 main 无 remote 是预期状态（但建议 hermes 加个 private remote 备份代码）
+5. **别用 git push 部署产物**：产物走 API 推送（凭据在 ~/.hermes/github_token.txt）；
+   代码可用 git push 到 origin（Baodan168/product-radar-fr，public）—— 已配好 remote，`git push origin main` 即可同步代码
 
 ## 五、参考
 

@@ -128,8 +128,7 @@ festival_engine 不再读它）、`~/product-analysis/`（补货占位中，接�
 
 ## 当前状态与待办
 
-- 框架就绪，等待 hermes 接入运营（扫描调度、深度趋势研究、补货数据源接入）
+- 框架就绪，等待 hermes 接入运营（扫描调度、趋势发现深度研究、补货数据源接入）
 - 待办清单与接入步骤见 `HANDOFF.md`
 - 已知遗留：Cloudflare Worker 代理不可用（curl_cffi 单通道风险）；
-  Kitchen 类目解析率偏低（30 块只出 3 个，疑另一种页面布局）；
-  本地 main 无 git remote（建议加 private remote 备份）
+  Kitchen 类目解析率偏低（30 块只出 3 个，疑另一种页面布局）
