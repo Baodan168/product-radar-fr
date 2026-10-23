@@ -22,7 +22,7 @@ OUTPUT_DIR = BASE / 'output'
 TEMPLATE_DIR = BASE / 'templates'
 ASSET_DIR = BASE / 'assets'
 
-SYSTEM_NAME = 'Amazon-FR项目'
+SYSTEM_NAME = 'Amazon-EU项目'   # 2026-10-23 FR→EU：法国店铺未落地，门户先挂欧洲站口径（德法意西集合，仓库/URL暂不变）
 SYSTEM_SUB = '选品•运营•新闻'
 PORTAL_VERSION = 'v4.0'
 
